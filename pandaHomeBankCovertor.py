@@ -8,112 +8,133 @@ import numpy as np
 
 
 def amexCCConversion(filename):
-    inputDataFrame = pd.read_csv(filename)
+    inputDataDict = pd.read_csv(filename).to_dict('records')
     data = []
     # Date,Reference,Description,Card Member,Card Number,Amount,Category,Type
-    for row in inputDataFrame.values:
-        data.append([row[0], 1, None, row[2], None,
-                     -1*row[5],
+    for row in inputDataDict:
+        data.append([row['Date'], None, None, row['Description'], None,
+                     -1*row['Amount'],
                      None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('amexHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv('convertedfiles/amexHomeBank.csv', index=False, sep=";")
 
 def boaCAConversion(filename):
-    inputDataFrame = pd.read_csv(filename, skiprows=6)
+    inputDataDict = pd.read_csv(filename, skiprows=6).to_dict('records')
     data = []
-    for row in inputDataFrame.values:
+    for row in inputDataDict:
         if pd.notnull(row[2]):
             # Date,Description,Amount,Running Bal.
-            data.append([row[0], 0, None, row[1], None, row[2], None, None])
+            data.append([row['Date'], None, None, row['Description'], None, row['Amount'], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('boaHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv('convertedfiles/boaHomeBank.csv', index=False, sep=";")
 
 def earnestConversion(filename):
-    inputDataFrame = pd.read_html(filename)
+    inputDataDict = pd.read_html(filename)[0].to_dict('records')
     data = []
     # Date,Loan,Description, Principal, Interest, Fees, Total, Unpaid Principal
-    for row in inputDataFrame[0].values:
-        if row[2] == "PAYMENT":
+    for row in inputDataDict:
+        if row['Description'] == "PAYMENT":
             # Just the loan
-            data.append([row[0], 10, None, "Ryan Hua", None,
-                         row[6][2:],
+            data.append([row['Date'], None, None, "Ryan Hua", None,
+                         row['Total'][2:],
                          "Loan Payment", None])
             # Just the interest
-            data.append([row[0], 10, None, "Earnest", None,
-                         "-" + row[4][2:],
+            data.append([row['Date'], None, None, "Earnest", None,
+                         "-" + row['Interest'][2:],
                          "Loan Interest", None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('earnestHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv('convertedfiles/earnestHomeBank.csv', index=False, sep=";")
 
 def vanguardRothConversion(filename):
-    inputDataFrame = pd.read_csv(filename, 
+    inputDataDict = pd.read_csv(filename, 
     names=[
         "Account Number", "Trade Date", "Settlement Date", "Transaction Type", "Transaction Description", 
         "Investment Name", "Symbol", "Shares", "Share Price", "Principal Amount", "Commission Fees", 
         "Net Amount", "Accrued Interest", "Account Type"
-        ])
+    ]).to_dict('records')
     data = []
-    for row in inputDataFrame.values:
-        if pd.notnull((row[13]) or row[13] == "Account Type"):
-            data.append([row[2], 0, row[4], "Vanguard", None,row[9],None,None])
+    for row in inputDataDict:
+        if (pd.notnull((row["Account Type"]) or row["Account Type"] == "Account Type")) and vanguardRothLogic(row['Transaction Type']):
+                data.append([row["Settlement Date"], 0, row["Transaction Description"], "Vanguard", 
+                                None,row["Principal Amount"],None,None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('vanguardRothHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv('convertedfiles/vanguardRothHomeBank.csv', index=False, sep=";")
+
+def vanguardRothLogic(rowType):
+    if rowType== 'Dividend':
+        return True
+    elif rowType== 'Contribution':
+        return True
+    elif rowType== 'Capital gain (LT)':
+        return True
+    elif rowType== 'Capital gain (ST)':
+        return True
+    else:
+        return False
 
 def vanguard401KConversion(filename):
-    inputDataFrame = pd.read_csv(filename,
+    inputDataDict = pd.read_csv(filename,
     names=[
         "Account Number", "Trade Date", "Run Date", "Transaction Activity", "Transaction Description", 
         "Investment Name", "Share Price", "Transaction Shares", "Dollar Amount"
-    ])
+    ]).to_dict('records')
     data = []
-    for row in inputDataFrame.values:
-        if pd.notnull(row[8]):
+    for row in inputDataDict:
+        if pd.notnull(row['Dollar Amount']) and vanguard401KLogic(row['Transaction Description']):
             data.append([
-                row[2], None, row[4], "Vanguard", None, row[8], None, row[5]
+                row['Run Date'], None, row['Transaction Description'], 'Vanguard', None, row['Dollar Amount'], None, row['Investment Name']
             ])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('vanguard401KHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv('convertedfiles/vanguard401KHomeBank.csv', index=False, sep=";")
+
+def vanguard401KLogic(rowType):
+    if rowType == 'Plan Contribution':
+        return True
+    elif rowType == 'Dividends on Equity Investments':
+        return True
+    else:
+        return False
 
 def venmoConversion(filename):
-    inputDataFrame = pd.read_csv(filename)
+    inputDataDict = pd.read_csv(filename).to_dict('records')
     data = []
-    # print(inputDataFrame)
-    for row in inputDataFrame.values:
+    for row in inputDataDict:
         # Username,ID,Datetime,Type,Status,Note,From,To,Amount (total),
         # Amount (fee),Funding Source,Destination,Beginning Balance,
         # Ending Balance,Statement Period Venmo Fees,Year to Date Venmo Fees,Disclaimer
-        if pd.notnull(row[8]):
-            dateobj = datetime.strptime(row[2], "%Y-%m-%dT%H:%M:%S")
+        if pd.notnull(row['Amount (total)']):
+            dateobj = datetime.strptime(row['Datetime'], "%Y-%m-%dT%H:%M:%S")
             data.append([
                 dateobj.strftime("%m/%d/%Y"),
-                None, row[5], 
+                None, row['Note'], 
                 venmoLogic(row),
-                "Venmo " + row[3],
-                row[8], None, None])
+                "Venmo " + row['Type'],
+                row['Amount (total)'], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('venmoHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv('convertedfiles/venmoHomeBank.csv', index=False, sep=";")
 
 def venmoLogic(row):
-    if row[3] == "Charge":
-        return row[7]
-    elif row[3] == "Standard Transfer":
+    if row['Type'] == "Charge":
+        return row['To']
+    elif row['Type'] == "Standard Transfer":
         return "Ryan Hua"
-    elif row[3] == "Payment":
-        return row[6]
+    elif row['Type'] == "Payment":
+        return row['From']
     else:
         return None
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert data files from online banking sites to Homebank compatible CSV formats")
