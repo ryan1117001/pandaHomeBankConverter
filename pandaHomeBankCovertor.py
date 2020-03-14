@@ -5,141 +5,192 @@ import xlrd
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import os
+import shutil
 
 
 def amexCCConversion(filename):
-    inputDataDict = pd.read_csv(filename).to_dict('records')
+    inputDataDict = pd.read_csv(filename).to_dict("records")
     data = []
     # Date,Reference,Description,Card Member,Card Number,Amount,Category,Type
     for row in inputDataDict:
-        data.append([row['Date'], None, None, row['Description'], None,
-                     -1*row['Amount'],
-                     None, None])
+        if pd.notnull(row["Amount"]):
+            data.append([row["Date"], None, None, row["Description"], None,
+                         -1*row["Amount"],
+                         None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('convertedfiles/amexHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv(
+        "convertedfiles/amexHomeBank.csv", index=False, sep=";")
+
 
 def boaCAConversion(filename):
-    inputDataDict = pd.read_csv(filename, skiprows=6).to_dict('records')
+    inputDataDict = pd.read_csv(filename, skiprows=6).to_dict("records")
     data = []
     for row in inputDataDict:
-        if pd.notnull(row['Running Bal.']):
+        if pd.notnull(row["Running Bal."]):
             # Date,Description,Amount,Running Bal.
-            data.append([row['Date'], None, None, row['Description'], None, row['Amount'], None, None])
+            data.append([row["Date"], None, None, row["Description"],
+                         None, row["Amount"], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('convertedfiles/boaHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv(
+        "convertedfiles/boaHomeBank.csv", index=False, sep=";")
+
 
 def earnestConversion(filename):
-    inputDataDict = pd.read_html(filename)[0].to_dict('records')
+    inputDataDict = pd.read_html(filename)[0].to_dict("records")
     data = []
     # Date,Loan,Description, Principal, Interest, Fees, Total, Unpaid Principal
     for row in inputDataDict:
-        if row['Description'] == "PAYMENT":
+        if row["Description"] == "PAYMENT" and pd.notnull(row["Total"]):
             # Just the loan
-            data.append([row['Date'], None, None, "Ryan Hua", None,
-                         row['Total'][2:],
+            data.append([row["Date"], None, None, "Ryan Hua", None,
+                         row["Total"][2:],
                          "Loan Payment", None])
             # Just the interest
-            data.append([row['Date'], None, None, "Earnest", None,
-                         "-" + row['Interest'][2:],
+            data.append([row["Date"], None, None, "Earnest", None,
+                         "-" + row["Interest"][2:],
                          "Loan Interest", None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('convertedfiles/earnestHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv(
+        "convertedfiles/earnestHomeBank.csv", index=False, sep=";")
+
 
 def vanguardRothConversion(filename):
-    inputDataDict = pd.read_csv(filename, 
-    names=[
-        "Account Number", "Trade Date", "Settlement Date", "Transaction Type", "Transaction Description", 
-        "Investment Name", "Symbol", "Shares", "Share Price", "Principal Amount", "Commission Fees", 
-        "Net Amount", "Accrued Interest", "Account Type"
-    ]).to_dict('records')
+    inputDataDict = pd.read_csv(filename,
+                                names=[
+                                    "Account Number", "Trade Date", "Settlement Date", "Transaction Type", "Transaction Description",
+                                    "Investment Name", "Symbol", "Shares", "Share Price", "Principal Amount", "Commission Fees",
+                                    "Net Amount", "Accrued Interest", "Account Type"
+                                ]).to_dict("records")
     data = []
     for row in inputDataDict:
-        if (pd.notnull((row["Account Type"]) or row["Account Type"] == "Account Type")) and vanguardRothLogic(row['Transaction Type']):
-                data.append([row["Settlement Date"], 0, row["Transaction Description"], "Vanguard", 
-                                None,row["Principal Amount"],None,None])
+        if (pd.notnull((row["Account Type"]) or row["Account Type"] == "Account Type")) and vanguardRothLogic(row["Transaction Type"]):
+            data.append([row["Settlement Date"], 0, row["Transaction Description"], "Vanguard",
+                         None, row["Principal Amount"], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('convertedfiles/vanguardRothHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv(
+        "convertedfiles/vanguardRothHomeBank.csv", index=False, sep=";")
+
 
 def vanguardRothLogic(rowType):
-    if rowType== 'Dividend':
+    if rowType == "Dividend":
         return True
-    elif rowType== 'Contribution':
+    elif rowType == "Contribution":
         return True
-    elif rowType== 'Capital gain (LT)':
+    elif rowType == "Capital gain (LT)":
         return True
-    elif rowType== 'Capital gain (ST)':
+    elif rowType == "Capital gain (ST)":
         return True
     else:
         return False
 
+
 def vanguard401KConversion(filename):
     inputDataDict = pd.read_csv(filename,
-    names=[
-        "Account Number", "Trade Date", "Run Date", "Transaction Activity", "Transaction Description", 
-        "Investment Name", "Share Price", "Transaction Shares", "Dollar Amount"
-    ]).to_dict('records')
+                                names=[
+                                    "Account Number", "Trade Date", "Run Date", "Transaction Activity", "Transaction Description",
+                                    "Investment Name", "Share Price", "Transaction Shares", "Dollar Amount"
+                                ]).to_dict("records")
     data = []
     for row in inputDataDict:
-        if pd.notnull(row['Dollar Amount']) and vanguard401KLogic(row['Transaction Description']):
+        if pd.notnull(row["Dollar Amount"]) and vanguard401KLogic(row["Transaction Description"]):
             data.append([
-                row['Run Date'], None, row['Transaction Description'], 'Vanguard', None, row['Dollar Amount'], None, row['Investment Name']
+                row["Run Date"], None, row["Transaction Description"], "Vanguard", None, row["Dollar Amount"], None, row["Investment Name"]
             ])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('convertedfiles/vanguard401KHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv(
+        "convertedfiles/vanguard401KHomeBank.csv", index=False, sep=";")
+
 
 def vanguard401KLogic(rowType):
-    if rowType == 'Plan Contribution':
+    if rowType == "Plan Contribution":
         return True
-    elif rowType == 'Dividends on Equity Investments':
+    elif rowType == "Dividends on Equity Investments":
         return True
     else:
         return False
 
+
 def venmoConversion(filename):
-    inputDataDict = pd.read_csv(filename).to_dict('records')
+    inputDataDict = pd.read_csv(filename).to_dict("records")
     data = []
     for row in inputDataDict:
         # Username,ID,Datetime,Type,Status,Note,From,To,Amount (total),
         # Amount (fee),Funding Source,Destination,Beginning Balance,
         # Ending Balance,Statement Period Venmo Fees,Year to Date Venmo Fees,Disclaimer
-        if pd.notnull(row['Amount (total)']):
-            dateobj = datetime.strptime(row['Datetime'], "%Y-%m-%dT%H:%M:%S")
+        if pd.notnull(row["Amount (total)"]):
+            dateobj = datetime.strptime(row["Datetime"], "%Y-%m-%dT%H:%M:%S")
             data.append([
                 dateobj.strftime("%m/%d/%Y"),
-                None, row['Note'], 
+                None, row["Note"],
                 venmoLogic(row),
-                "Venmo " + row['Type'],
-                row['Amount (total)'], None, None])
+                "Venmo " + row["Type"],
+                row["Amount (total)"], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
-    outputDataFrame.to_csv('convertedfiles/venmoHomeBank.csv', index=False, sep=";")
+    outputDataFrame.to_csv(
+        "convertedfiles/venmoHomeBank.csv", index=False, sep=";")
+
+
+def init():
+    try:
+        os.mkdir("files")
+        os.mkdir("convertedfiles")
+        print("Init success")
+    except:
+        print("Init failed")
+
+
+def runAll():
+    print("running all")
+
+
+def clean():
+    filesPath = ""
+    convertedPath = ""
+    if os.name == "nt":
+        filesPath = os.getcwd() + "\\files"
+        convertedPath = os.getcwd() + "\\convertedfiles"
+    else:
+        filesPath = os.getcwd() + "/files"
+        convertedPath = os.getcwd() + "/convertedfiles"
+    try:
+        shutil.rmtree(filesPath)
+        shutil.rmtree(convertedPath)
+        print("Directories have been removed")
+    except:
+        print("Directories were not cleaned")
+
 
 def venmoLogic(row):
-    if row['Type'] == "Charge":
-        return row['To']
-    elif row['Type'] == "Standard Transfer":
+    if row["Type"] == "Charge":
+        return row["To"]
+    elif row["Type"] == "Standard Transfer":
         return "Ryan Hua"
-    elif row['Type'] == "Payment":
-        return row['From']
+    elif row["Type"] == "Payment":
+        return row["From"]
     else:
         return None
 
+
 def main():
     parser1 = argparse.ArgumentParser(add_help=False,
-        description="Convert data files from online banking sites to Homebank compatible CSV formats")
-    parser1.add_argument("--clean", action="store_true", help="clean the directory") 
-    
+                                      description="Convert data files from online banking sites to Homebank compatible CSV formats")
+    parser1.add_argument("--clean", action="store_true",
+                         help="clean the directory")
+    parser1.add_argument("--init", action="store_true",
+                         help="init the directory")
     parser2 = argparse.ArgumentParser(parents=[parser1])
     group = parser2.add_mutually_exclusive_group()
     group.add_argument("--amex", nargs=1,
@@ -157,29 +208,31 @@ def main():
 
     args = parser2.parse_args()
     if args.clean:
-        print("get clean")
+        clean()
+    elif args.init:
+        init()
     elif args.amex:
         amexCCConversion(args.amex[0])
-        print("AMEX file converted. Output file: 'amexHomeBank.csv'")
+        print("AMEX file converted. Output file: amexHomeBank.csv")
     elif args.boa:
         print(args.boa)
         boaCAConversion(args.boa[0])
-        print("BOA CA file converted. Output file 'boaHomeBank.csv'")
+        print("BOA CA file converted. Output file: boaHomeBank.csv")
     elif args.earnest:
         earnestConversion(args.earnest[0])
-        print("Earnest file converted. Output file 'earnestHomeBank.csv'")
+        print("Earnest file converted. Output file: earnestHomeBank.csv")
     elif args.venmo:
         venmoConversion(args.venmo[0])
-        print("Venmo file converted. Output file 'venmoHomeBank.csv'")
+        print("Venmo file converted. Output file: venmoHomeBank.csv")
     elif args.vRoth:
         vanguardRothConversion(args.vRoth[0])
-        print("Vanguard Roth file converted. Output file 'vanguardRothHomeBank.csv'")
+        print("Vanguard Roth file converted. Output file: vanguardRothHomeBank.csv")
     elif args.v401k:
         vanguard401KConversion(args.v401k[0])
-        print("Vanguard 401k file converted. Output file 'vanguard401kHomeBank.csv")
+        print("Vanguard 401k file converted. Output file: vanguard401kHomeBank.csv")
     else:
         print("You must provide the arg for which banking site the csv file comes from")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
