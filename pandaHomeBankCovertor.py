@@ -136,42 +136,46 @@ def venmoLogic(row):
         return None
 
 def main():
-    parser = argparse.ArgumentParser(
+    parser1 = argparse.ArgumentParser(add_help=False,
         description="Convert data files from online banking sites to Homebank compatible CSV formats")
-    parser.add_argument("filename", help="The file to convert.")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--amex", action="store_true",
-                       help="convert an American Express credit card account CSV file")
-    group.add_argument("--boa", action="store_true",
+    parser1.add_argument("--clean", action="store_true", help="clean the directory") 
+    
+    parser2 = argparse.ArgumentParser(parents=[parser1])
+    group = parser2.add_mutually_exclusive_group()
+    group.add_argument("--amex", nargs=1,
+                       help="convert an American Express credit card account CSV file",)
+    group.add_argument("--boa", nargs=1,
                        help="convert a Bank of America checking account CSV file")
-    group.add_argument("--earnest", action="store_true",
+    group.add_argument("--earnest", nargs=1,
                        help="convert an Earnest xlsx file")
-    group.add_argument("--venmo", action="store_true",
+    group.add_argument("--venmo", nargs=1,
                        help="convert an Venmo csv file")
-    group.add_argument("--vanguardRoth", action="store_true",
+    group.add_argument("--vRoth", nargs=1,
                        help="convert an Vanguard csv file")
-    group.add_argument("--vanguard401K", action="store_true",
+    group.add_argument("--v401k", nargs=1,
                        help="convert an Vanguard csv file")
 
-    args = parser.parse_args()
-
-    if args.amex:
-        amexCCConversion(args.filename)
+    args = parser2.parse_args()
+    if args.clean:
+        print("get clean")
+    elif args.amex:
+        amexCCConversion(args.amex)
         print("AMEX file converted. Output file: 'amexHomeBank.csv'")
     elif args.boa:
-        boaCAConversion(args.filename)
+        print(args.boa)
+        boaCAConversion(args.boa[0])
         print("BOA CA file converted. Output file 'boaHomeBank.csv'")
     elif args.earnest:
-        earnestConversion(args.filename)
+        earnestConversion(args.earnest[0])
         print("Earnest file converted. Output file 'earnestHomeBank.csv'")
     elif args.venmo:
-        venmoConversion(args.filename)
+        venmoConversion(args.venmo[0])
         print("Venmo file converted. Output file 'venmoHomeBank.csv'")
-    elif args.vanguardRoth:
-        vanguardRothConversion(args.filename)
+    elif args.vRoth:
+        vanguardRothConversion(args.vRoth[0])
         print("Vanguard Roth file converted. Output file 'vanguardRothHomeBank.csv'")
-    elif args.vanguard401K:
-        vanguard401KConversion(args.filename)
+    elif args.v401k:
+        vanguard401KConversion(args.v401k[0])
         print("Vanguard 401k file converted. Output file 'vanguard401kHomeBank.csv")
     else:
         print("You must provide the arg for which banking site the csv file comes from")
