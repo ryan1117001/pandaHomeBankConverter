@@ -12,7 +12,7 @@ unixFilesPath = os.getcwd() + "/files"
 unixConvertedPath = os.getcwd() + "/convertedfiles"
 windowsFilesPath = os.getcwd() + "\\files"
 windowsConvertedPath = os.getcwd() + "\\convertedfiles"
-
+user = "Ryan Hua"
 
 def amexCCConversion(filename):
     inputDataDict = pd.read_csv(filename).to_dict("records")
@@ -56,7 +56,7 @@ def earnestConversion(filename):
     for row in inputDataDict:
         if row["Description"] == "PAYMENT" and pd.notnull(row["Total"]):
             # Just the loan
-            data.append([row["Date"], None, None, "Ryan Hua", None,
+            data.append([row["Date"], None, None, user, None,
                          row["Total"][2:],
                          "Loan Payment", None])
             # Just the interest
@@ -229,7 +229,7 @@ def venmoLogic(row):
     if row["Type"] == "Charge":
         return row["To"]
     elif row["Type"] == "Standard Transfer":
-        return "Ryan Hua"
+        return user
     elif row["Type"] == "Payment":
         return row["From"]
     else:
