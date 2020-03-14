@@ -8,6 +8,11 @@ import numpy as np
 import os
 import shutil
 
+unixFilesPath = os.getcwd() + "/files"
+unixConvertedPath = os.getcwd() + "/convertedfiles"
+windowsFilesPath = os.getcwd() + "\\files"
+windowsConvertedPath = os.getcwd() + "\\convertedfiles"
+
 
 def amexCCConversion(filename):
     inputDataDict = pd.read_csv(filename).to_dict("records")
@@ -18,6 +23,8 @@ def amexCCConversion(filename):
             data.append([row["Date"], None, None, row["Description"], None,
                          -1*row["Amount"],
                          None, None])
+    if len(data) == 0:
+        raise Exception()
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
@@ -33,6 +40,8 @@ def boaCAConversion(filename):
             # Date,Description,Amount,Running Bal.
             data.append([row["Date"], None, None, row["Description"],
                          None, row["Amount"], None, None])
+    if len(data) == 0:
+        raise Exception()
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
@@ -54,6 +63,8 @@ def earnestConversion(filename):
             data.append([row["Date"], None, None, "Earnest", None,
                          "-" + row["Interest"][2:],
                          "Loan Interest", None])
+    if len(data) == 0:
+        raise Exception()
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
@@ -73,6 +84,8 @@ def vanguardRothConversion(filename):
         if (pd.notnull((row["Account Type"]) or row["Account Type"] == "Account Type")) and vanguardRothLogic(row["Transaction Type"]):
             data.append([row["Settlement Date"], 0, row["Transaction Description"], "Vanguard",
                          None, row["Principal Amount"], None, None])
+    if len(data) == 0:
+        raise Exception()
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
@@ -108,6 +121,8 @@ def vanguard401KConversion(filename):
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
+    if len(data) == 0:
+        raise Exception()
     outputDataFrame.to_csv(
         "convertedfiles/vanguard401KHomeBank.csv", index=False, sep=";")
 
@@ -136,6 +151,8 @@ def venmoConversion(filename):
                 venmoLogic(row),
                 "Venmo " + row["Type"],
                 row["Amount (total)"], None, None])
+    if len(data) == 0:
+        raise Exception()
     outputDataFrame = pd.DataFrame(data=data, columns=[
                                    "date", "payment", "info", "payee",
                                    "memo", "amount", "category", "tags"])
@@ -154,20 +171,55 @@ def init():
 
 def runAll():
     print("running all")
+    cwd = ""
+    if os.name == "nt":
+        fileList = os.listdir(windowsFilesPath)
+        cwd = windowsFilesPath + "\\"
+    else:
+        fileList = os.listdir(unixFilesPath)
+        cwd = unixFilesPath + "/"
+    for file in fileList:
+        filePath = cwd + file
+        try:
+            amexCCConversion(filePath)
+            print(file + " is amexCC")
+        except:
+            print(file + " is not amexCC")
+        try:
+            boaCAConversion(filePath)
+            print(file + " is boaCA")
+        except:
+            print(file + " is not boaCA")
+        try:
+            earnestConversion(filePath)
+            print(file + " is earnest")
+        except:
+            print(file + " is not earnest")
+        try:
+            vanguardRothConversion(filePath)
+            print(file + " is vanguardRoth")
+        except:
+            print(file + " is not vanguardRoth")
+        try:
+            vanguard401KConversion(filePath)
+            print(file + " is vanguard401k")
+        except:
+            print(file + " is not vanguard401k")
+        try:
+            venmoConversion(filePath)
+            print(file + " is venmo")
+        except:
+            print(file + " is not venmo")
 
 
 def clean():
-    filesPath = ""
-    convertedPath = ""
-    if os.name == "nt":
-        filesPath = os.getcwd() + "\\files"
-        convertedPath = os.getcwd() + "\\convertedfiles"
-    else:
-        filesPath = os.getcwd() + "/files"
-        convertedPath = os.getcwd() + "/convertedfiles"
     try:
-        shutil.rmtree(filesPath)
-        shutil.rmtree(convertedPath)
+        if os.name == "nt":
+            shutil.rmtree(windowsFilePath)
+            shutil.rmtree(windowsConvertedPath)
+        else:
+            shutil.rmtree(unixFilesPath)
+            shutil.rmtree(unixConvertedPath)
         print("Directories have been removed")
     except:
         print("Directories were not cleaned")
@@ -202,9 +254,9 @@ def main():
     group.add_argument("--venmo", nargs=1,
                        help="convert an Venmo csv file")
     group.add_argument("--vRoth", nargs=1,
-                       help="convert an Vanguard csv file")
+                       help="convert an Vanguard Roth csv file")
     group.add_argument("--v401k", nargs=1,
-                       help="convert an Vanguard csv file")
+                       help="convert an Vanguard 401K csv file")
 
     args = parser2.parse_args()
     if args.clean:
@@ -231,7 +283,8 @@ def main():
         vanguard401KConversion(args.v401k[0])
         print("Vanguard 401k file converted. Output file: vanguard401kHomeBank.csv")
     else:
-        print("You must provide the arg for which banking site the csv file comes from")
+        runAll()
+        print("All files have been converted")
 
 
 if __name__ == "__main__":
