@@ -24,7 +24,7 @@ def boaCAConversion(filename):
     inputDataDict = pd.read_csv(filename, skiprows=6).to_dict('records')
     data = []
     for row in inputDataDict:
-        if pd.notnull(row[2]):
+        if pd.notnull(row['Running Bal.']):
             # Date,Description,Amount,Running Bal.
             data.append([row['Date'], None, None, row['Description'], None, row['Amount'], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=[
@@ -159,7 +159,7 @@ def main():
     if args.clean:
         print("get clean")
     elif args.amex:
-        amexCCConversion(args.amex)
+        amexCCConversion(args.amex[0])
         print("AMEX file converted. Output file: 'amexHomeBank.csv'")
     elif args.boa:
         print(args.boa)
