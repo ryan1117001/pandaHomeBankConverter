@@ -1,13 +1,33 @@
 # pandaHomeBankConverter
 Converts csv files for HomeBank compatibility
 
-## How To
-To Be Done
+## How To Install
+[Install Python3](https://www.python.org/ "Python Homepage")
+
+`cd dir/to/pandaHomeBankConverter`
+`pip3 install -r requirements.txt`
+
+## How To Use
+
+Go to pandaHomeBankConverter
+
+`cd dir/to/pandaHomeBankConverter`
+
+Create the files folder. The CSV files need to be placed in the *files* folder.
+
+`python3 pandaHomeBankConverter --init`
+
+ The default is to run all files inside the files folder.
+
+`python3 pandaHomeBankConverter`
+
+Use `--help` for more info
+
 
 ## What is Currently Available
-* American Express Credit Cards
-* Bank of America Checking Accounts
-* Venmo Statements
-* Vanguard IRA
-* Vanguard 401K
-* Earnest
+* American Express Credit Cards (csv)
+* Bank of America Checking Accounts (csv)
+* Earnest (xlsx)
+* Venmo Statements (csv)
+* Vanguard IRA (csv)
+* Vanguard 401K (csv)
