@@ -281,7 +281,7 @@ def venmoLogic(row):
 
 def main():
     parser1 = argparse.ArgumentParser(add_help=False,
-                                      description="Convert data files from online banking sites to Homebank compatible CSV formats. Default is to ")
+                                      description="Convert data files from online banking sites to Homebank compatible CSV formats. Default is to run all")
     parser1.add_argument("--clean", action="store_true",
                          help="deletes the \'convertedfiles\' and \'files\' directories and its contents")
     parser1.add_argument("--init", action="store_true",
