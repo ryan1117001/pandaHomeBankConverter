@@ -29,7 +29,7 @@ def amexCCConversion(filename):
     try:
         inputDataDict = pd.read_csv(filepath_or_buffer=filename, header=0)
         if all(inputDataDict.columns == amexHeaders):
-            inputDataDict.to_dict("records")
+            inputDataDict = inputDataDict.to_dict("records")
     except:
         raise Exception
     data = []
@@ -151,7 +151,6 @@ def venmoConversion(filename):
     except:
         raise Exception
     data = []
-    print(inputDataDict)
     for row in inputDataDict:
         if pd.notnull(row["Amount (total)"]):
             data.append([
@@ -282,7 +281,7 @@ def venmoLogic(row):
 
 def main():
     parser1 = argparse.ArgumentParser(add_help=False,
-                                      description="Convert data files from online banking sites to Homebank compatible CSV formats")
+                                      description="Convert data files from online banking sites to Homebank compatible CSV formats. Default is to ")
     parser1.add_argument("--clean", action="store_true",
                          help="deletes the \'convertedfiles\' and \'files\' directories and its contents")
     parser1.add_argument("--init", action="store_true",
