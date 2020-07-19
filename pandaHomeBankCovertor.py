@@ -18,7 +18,8 @@ windowsConvertedPath = os.getcwd() + config["FilePaths"]["windowsConvertedPath"]
 user = config["User"]["username"]
 homeBankCols = config["HomeBank"]["homeBankCols"].split(sep=",")
 amexHeaders = config["CSVHeaders"]["amexHeaders"].split(sep=",")
-boaHeaders = config["CSVHeaders"]["boaHeaders"].split(sep=",")
+boaCAHeaders = config["CSVHeaders"]["boaCAHeaders"].split(sep=",")
+boaCCHeaders = config["CSVHeaders"]["boaCCHeaders"].split(sep=",")
 earnestHeaders = config["CSVHeaders"]["earnestHeaders"].split(sep=",")
 vanguardRothHeaders = config["CSVHeaders"]["vanguardRothHeaders"].split(sep=",")
 vanguard401KHeaders = config["CSVHeaders"]["vanguard401KHeaders"].split(sep=",")
@@ -42,11 +43,10 @@ def amexCCConversion(filename):
     outputDataFrame.to_csv(
         "convertedfiles/amexHomeBank.csv", index=False, sep=";")
 
-
 def boaCAConversion(filename):
     try:
         inputDataDict = pd.read_csv(filepath_or_buffer=filename, header=5)
-        if all(inputDataDict.columns == boaHeaders):
+        if all(inputDataDict.columns == boaCAHeaders):
             inputDataDict = inputDataDict.to_dict("records")
     except:
         raise Exception
@@ -56,8 +56,22 @@ def boaCAConversion(filename):
                         None, row["Amount"], None, None])
     outputDataFrame = pd.DataFrame(data=data, columns=homeBankCols)
     outputDataFrame.to_csv(
-        "convertedfiles/boaHomeBank.csv", index=False, sep=";")
+        "convertedfiles/boaCAHomeBank.csv", index=False, sep=";")
 
+def boaCCConversion(filename):
+    try:
+        inputDataDict = pd.read_csv(filepath_or_buffer=filename, header=0)
+        if all(inputDataDict.columns == boaCCHeaders):
+            inputDataDict = inputDataDict.to_dict("records")
+    except:
+        raise Exception
+    data = []
+    for row in inputDataDict:
+        data.append([row["Posted Date"], None, row["Reference Number"], row["Payee"],
+                        None, row["Amount"], None, None])
+    outputDataFrame = pd.DataFrame(data=data, columns=homeBankCols)
+    outputDataFrame.to_csv(
+        "convertedfiles/boaCCHomeBank.csv", index=False, sep=";")
 
 def earnestConversion(filename):
     inputDataDict = pd.read_html(io=filename)[0]
@@ -143,7 +157,6 @@ def vanguard401KLogic(rowType):
 
 def venmoConversion(filename):
     try:
-        dateParser = lambda x: pd.datetime.strptime(x, "%Y-%m-%dT%H:%M:%S")
         inputDataDict = pd.read_csv(filepath_or_buffer=filename,header=0)
         inputDataDict["Datetime"] = pd.to_datetime(inputDataDict["Datetime"],format="%Y-%m-%dT%H:%M:%S")
         if all(inputDataDict.columns == venmoHeaders):
@@ -229,6 +242,11 @@ def runAll():
         except:
             print(file + " is not boaCA")
         try:
+            boaCCConversion(filePath)
+            print(file + " is boaCC")
+        except:
+            print(file + " is not boaCC")
+        try:
             earnestConversion(filePath)
             print(file + " is earnest")
         except:
@@ -258,7 +276,7 @@ def runAll():
 def clean():
     try:
         if os.name == "nt":
-            shutil.rmtree(windowsFilePath)
+            shutil.rmtree(windowsFilesPath)
             shutil.rmtree(windowsConvertedPath)
         else:
             shutil.rmtree(unixFilesPath)
@@ -290,8 +308,10 @@ def main():
     group = parser2.add_mutually_exclusive_group()
     group.add_argument("--amex", nargs=1,
                        help="convert an American Express credit card account CSV file",)
-    group.add_argument("--boa", nargs=1,
+    group.add_argument("--boaCA", nargs=1,
                        help="convert a Bank of America checking account CSV file")
+    group.add_argument("--boaCC", nargs=1,
+                       help="convert a Bank of America credit card CSV file")
     group.add_argument("--earnest", nargs=1,
                        help="convert an Earnest xlsx file")
     group.add_argument("--venmo", nargs=1,
@@ -312,9 +332,12 @@ def main():
     elif args.amex:
         amexCCConversion(args.amex[0])
         print("AMEX file converted. Output file: amexHomeBank.csv")
-    elif args.boa:
-        boaCAConversion(args.boa[0])
+    elif args.boaCA:
+        boaCAConversion(args.boaCA[0])
         print("BOA CA file converted. Output file: boaHomeBank.csv")
+    elif args.boaCC:
+        boaCCConversion(args.boaCC[0])
+        print("BOA CC file converted. Output file: boaHomeBank.csv")
     elif args.earnest:
         earnestConversion(args.earnest[0])
         print("Earnest file converted. Output file: earnestHomeBank.csv")
