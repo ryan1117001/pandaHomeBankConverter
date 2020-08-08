@@ -27,6 +27,7 @@ Use `--help` for more info
 ## What is Currently Available
 * American Express Credit Cards (csv)
 * Bank of America Checking Accounts (csv)
+* Bank of America Credit Card (csv)
 * Earnest (xlsx)
 * Venmo Statements (csv)
 * Vanguard IRA (csv)
