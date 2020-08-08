@@ -128,7 +128,7 @@ def vanguardRothLogic(rowType):
 
 def vanguard401KConversion(filename):
     try:
-        inputDataDict = pd.read_csv(filepath_or_buffer=filename,header=13)
+        inputDataDict = pd.read_csv(filepath_or_buffer=filename,header=16)
         inputDataDict = inputDataDict.loc[:, ~inputDataDict.columns.str.contains('^Unnamed')]
         if all(inputDataDict.columns == vanguard401KHeaders):
             inputDataDict = inputDataDict.to_dict("records") 
